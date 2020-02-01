@@ -1,0 +1,178 @@
+;
+; FM-7 EMULATOR "XM7"
+;
+; Copyright (C) 1999-2001 ＰＩ．(ytanaka@ipc-tokai.or.jp)
+; [ ROMセーバ作成 ]
+;
+
+;
+; TASMの標準モード(MASM互換モード)を使用
+; メモリモデルはTINY(.COMモデル)
+;
+		LOCALS
+		DOSSEG
+		MODEL	TINY
+		CODESEG
+		ORG	0100H
+
+;
+; プログラムスタート
+;
+START:
+		CLD
+		MOV	AX,CS
+		MOV	DS,AX
+		MOV	ES,AX
+		MOV	SS,AX
+		XOR	SP,SP
+		MOV	DX,offset TITLE_MSG
+		CALL	PRINT
+		CALL	CMDLINE
+		CALL	DISKGEO
+		CALL	READ
+		CALL	WRITE
+		MOV	DX,offset COMPLETE_MSG
+		CALL	PRINT
+		MOV	AX,4C00H
+		INT	21H
+
+;
+; コマンドライン処理
+;
+CMDLINE:
+		MOV	SI,0080H
+		LODSB
+		OR	AL,AL
+		JZ	@@ERROR
+		INC	SI
+		LODSB
+		CMP	AL,'A'
+		JC	@@ERROR
+		CMP	AL,'Z'+1
+		JC	@@OK
+		CMP	AL,'a'
+		JC	@@ERROR
+		CMP	AL,'z'+1
+		JNC	@@ERROR
+@@OK:
+		OR	AL,20H
+		MOV	byte ptr DRIVE,AL
+		RET
+@@ERROR:
+		MOV	DX,offset CMDLINE_MSG
+		JMP	ERROR
+
+;
+; ディスクジオメトリ チェック
+;
+DISKGEO:
+		MOV	DL,byte ptr DRIVE
+		SUB	DL,60H
+		MOV	AH,36H
+		INT	21H
+		CMP	AX,0002H
+		JNZ	@@ERROR
+		CMP	CX,512
+		JNZ	@@ERROR
+		CMP	DX,713
+		JNZ	@@ERROR
+		RET
+@@ERROR:
+		MOV	DX,offset DISKGEO_MSG
+		JMP	ERROR
+
+;
+; ファイル読み込み
+;
+READ:
+		MOV	DX,offset FILENAME
+		MOV	AX,3D00H
+		INT	21H
+		JC	@@ERROR
+		MOV	BX,AX
+		PUSH	AX
+		MOV	DX,offset BUFFER
+		MOV	CX,4608
+		MOV	AH,3FH
+		INT	21H
+		POP	BX
+		MOV	AH,3EH
+		INT	21H
+		RET
+@@ERROR:
+		MOV	DX,offset READ_MSG
+		JMP	ERROR
+
+;
+; ディスク書き込み
+;
+WRITE:
+		MOV	CX,0009H
+		MOV	DX,0000H
+		MOV	BX,offset BUFFER
+		MOV	AL,byte ptr DRIVE
+		SUB	AL,'a'
+		INT	26H
+		ADD	SP,2
+		JC	@@ERROR
+		RET
+@@ERROR:
+		MOV	DX,offset WRITE_MSG
+		JMP	ERROR
+
+;
+; 文字列表示
+;
+PRINT:
+		MOV	AH,09H
+		INT	21H
+		RET
+
+;
+; エラー処理
+;
+ERROR:
+		CALL	PRINT
+		MOV	AX,4C01H
+		INT	21H
+
+;
+; 文字列データ
+;
+FILENAME	DB	'SAVEROM.BIN',0
+TITLE_MSG:
+		DB	'ROM-SAVER Utility for XM7 (v1.00)'
+		DB	13,10,'$'
+CMDLINE_MSG:
+		DB	'Usage:SAVEROM <DRIVE>',13,10
+		DB	'Ex)SAVEROM A (A: is 1.44MB/720KB FLOPPY)',13,10,'$'
+DISKGEO_MSG:
+		DB	'Media is not 720KB format'
+		DB	13,10,'$'
+READ_MSG:
+		DB	'SAVEROM.BIN is not found'
+		DB	13,10,'$'
+WRITE_MSG:
+		DB	'Write error'
+		DB	13,10,'$'
+COMPLETE_MSG:
+		DB	'Completed'
+		DB	13,10,'$'
+
+;
+; ドライブレター
+;
+DRIVE:
+		DB	?
+
+;
+; バッファ
+;
+BUFFER:
+		DB	4608 DUP (?)
+
+
+;
+; プログラム終了
+;
+		END	START

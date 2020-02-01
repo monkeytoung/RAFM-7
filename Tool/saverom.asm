@@ -1,0 +1,1862 @@
+*
+* FM-7 EMULATOR "XM7"
+*
+* Copyright (C) 1999-2001 ＰＩ．(ytanaka@ipc-tokai.or.jp)
+* [ ROMセーバ ]
+*
+		ORG	$1000
+
+*
+* 定数定義
+*
+STACK		EQU	$0F00		* スタック最終
+BUFFER		EQU	$0F80		* 汎用バッファ
+KANJI_BUF	EQU	$0FE8		* 漢字バッファ
+DISK_BUF	EQU	$2000		* ディスクバッファ
+
+*
+* ワークエリア定義
+*
+RS_FLAG		EQU	$00		* シリアル出力フラグ
+DRIVE		EQU	$01		* アクセスドライブ
+TRACK		EQU	$02		* アクセストラック
+DRIVE0_T	EQU	$03		* ドライブ0のトラック
+DRIVE1_T	EQU	$04		* ドライブ1のトラック
+SIDE		EQU	$05		* アクセスサイド
+SECTOR		EQU	$06		* アクセスセクタ
+SECTORS		EQU	$07		* 連続セクタ数
+CLUSTER		EQU	$08		* ファイル先頭クラスタ
+CLUSTERS	EQU	$0A		* トータルクラスタ数(1クラスタ1KB)
+LASTBYTE	EQU	$0C		* 最終クラスタのバイト数
+COLOR		EQU	$0E		* 漢字カラーコード
+TYPE		EQU	$0F		* FDCコマンドタイプ
+C_TRACK		EQU	$10		* カレントトラック
+C_SIDE		EQU	$11		* カレントサイド
+C_SECTOR	EQU	$12		* カレントセクタ
+C_SECTORS	EQU	$13		* カレントセクタ数
+
+*
+* プログラムスタート
+*
+START		BRA	MAIN
+
+*
+* プログラムヘッダ
+*
+HEADER		FCC	/TINY-DOS(mini) for FM-7  /
+		FCC	/Copyright 1991-1992,1999 by ＰＩ．/
+		FCB	$0D,$0A,$00
+
+*
+* メインプログラム
+*
+MAIN		ORCC	#$50
+		LEAS	STACK,PCR
+		LBSR	INIT
+*		LBSR	RS_INIT
+		LBSR	FM77AV_INIT
+*
+		LEAX	TITLE_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	SPACE_MSG,PCR
+		LBSR	PUT_STRING
+		LBSR	KEY_SPACE
+		LBSR	DISK_RST
+		LBSR	MS_FORMAT
+		LBSR	FBASIC
+		LBSR	BOOT_BAS
+		LBSR	BOOT_DOS
+		LBSR	SUBSYS_C
+		LBSR	KANJI
+		LBSR	INITIATE
+		LBSR	SUBSYS_A
+		LBSR	SUBSYS_B
+		LBSR	SUBSYS_CG
+*
+		LBSR	CLS
+		LEAX	COMPLETE_MSG,PCR
+		LBSR	PUT_STRING
+LOOP		BRA	LOOP
+
+
+*
+* 初期化
+*
+INIT		LEAX	START,PCR
+		LEAX	-$100,X
+		TFR	X,D
+		TFR	A,DP
+* ワーククリア
+		CLRA
+INIT1		CLR	,X+
+		DECA
+		BNE	INIT1
+* 画面初期化
+		LEAX	SUBINIT_CMD,PCR
+		LDB	#$09
+		LBSR	SUB_CMD
+		LEAX	SUBCONS_CMD,PCR
+		LDB	#$02
+		LBSR	SUB_CMD
+* FM77AVチェック
+		LBSR	IS_FM77AV
+		BCC	INIT2
+		LEAX	FM77AV_MSG,PCR
+		LBSR	PRINT
+		BRA	*
+INIT2		RTS
+
+*
+* F-BASIC ROM
+*
+FBASIC		LBSR	CLS
+		LEAX	FBASIC_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	FBASIC_FN,PCR
+		LDD	#31
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDX	#$8000
+		LDU	#31
+		LBSR	FILE_WRITE
+		RTS
+
+*
+* BOOT(BASIC) ROM
+*
+BOOT_BAS	LBSR	CLS
+		LEAX	BOOT_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	BOOTBAS_FN,PCR
+		LDD	#1
+		STD	<CLUSTERS
+		LDD	#512
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDX	#$7800
+		LDU	#1
+		CLR	$FD10
+		LBSR	FILE_WRITE
+		LDA	#$02
+		STA	$FD10
+		RTS
+
+*
+* BOOT(DOS) ROM
+*
+BOOT_DOS	LEAX	BOOTDOS_FN,PCR
+		LDD	#1
+		STD	<CLUSTERS
+		LDD	#512
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDX	#$7A00
+		LDU	#1
+		CLR	$FD10
+		LBSR	FILE_WRITE
+		LDA	#$02
+		STA	$FD10
+		RTS
+
+*
+* SUBSYSTEM (TYPE-C) ROM
+*
+SUBSYS_C	LBSR	CLS
+		LEAX	SUBSYSC_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	SUBSYSC_FN,PCR
+		LDD	#10
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDA	#$1D
+		STA	$FD84
+		INCA
+		STA	$FD85
+		INCA
+		STA	$FD86
+		LDX	#$4800
+		LDU	#10
+		LBSR	FILE_WRITE
+		LDA	#$34
+		STA	$FD84
+		INCA
+		STA	$FD85
+		INCA
+		STA	$FD86
+		RTS
+
+*
+* KANJI ROM
+*
+KANJI		LBSR	CLS
+		LEAX	KANJI_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	KANJI_FN,PCR
+		LDD	#$80
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+* 8回ループ
+		LDX	#$0000
+KANJI1		LDU	#$4000
+KANJI2		STX	$FD20
+		LDD	$FD22
+		STD	,U++
+		LEAX	1,X
+		CMPU	#$8000
+		BNE	KANJI2
+* セーブ
+		PSHS	X
+		LDX	#$4000
+		LDU	#16
+		LBSR	FILE_WRITE
+		PULS	X
+* NEXT
+		CMPX	#$0000
+		BNE	KANJI1
+		RTS
+
+*
+* INITIATE ROM
+*
+INITIATE	LBSR	CLS
+		LEAX	INITIATE_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	INITIATE_FN,PCR
+		LDD	#8
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDX	#$6000
+		LDU	#8
+		CLR	$FD10
+		LBSR	FILE_WRITE
+		LDA	#$02
+		STA	$FD10
+		RTS
+
+*
+* SUBSYSTEM (TYPE-A) ROM
+*
+SUBSYS_A	LDA	#$01
+		STA	$FD13
+		CLR	$FD05
+		LBSR	SUB_HALT
+		LBSR	CLS
+		LEAX	SUBSYSA_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	SUBSYSA_FN,PCR
+		LDD	#8
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDA	#$1E
+		STA	$FD84
+		INCA
+		STA	$FD85
+		LDX	#$4000
+		LDU	#8
+		LBSR	FILE_WRITE
+		LDA	#$34
+		STA	$FD84
+		INCA
+		STA	$FD85
+		RTS
+
+*
+* SUBSYSTEM (TYPE-B) ROM
+*
+SUBSYS_B	LDA	#$02
+		STA	$FD13
+		CLR	$FD05
+		LBSR	SUB_HALT
+		CLR	$FD12
+		LBSR	CLS
+		LEAX	SUBSYSB_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	SUBSYSB_FN,PCR
+		LDD	#8
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDA	#$02
+		STA	$FD13
+		LDA	#$1E
+		STA	$FD84
+		INCA
+		STA	$FD85
+		LDX	#$4000
+		LDU	#8
+		LBSR	FILE_WRITE
+		LDA	#$34
+		STA	$FD84
+		INCA
+		STA	$FD85
+		RTS
+
+*
+* SUBSYSTEM (CG) ROM
+*
+SUBSYS_CG	CLR	$FD13
+		CLR	$FD05
+		LBSR	SUB_HALT
+		LBSR	CLS
+		LEAX	SUBSYSCG_MSG,PCR
+		LBSR	PUT_STRING
+		LEAX	SUBSYSCG_FN,PCR
+		LDD	#8
+		STD	<CLUSTERS
+		LDD	#1024
+		STD	<LASTBYTE
+		LBSR	FILE_CREATE
+		LDA	#$1D
+		STA	$FD84
+* ４回書き込み
+		CLRA
+SUBSYS_CG1	PSHS	A
+		STA	$4430
+		LDX	#$4800
+		LDU	#2
+		LBSR	FILE_WRITE
+		PULS	A
+		INCA
+		CMPA	#$04
+		BCS	SUBSYS_CG1
+* 終了
+		LDA	#$34
+		STA	$FD84
+		RTS
+
+*--[ FM77AV ]-----------------------------------------------------------------
+
+*
+* FM77AV判定
+*
+* RESULT: CY	FM-7(ON),FM77AV(OFF)
+*
+IS_FM77AV	PSHS	A
+* 標準RAMへ切り替え、$00を書き込む
+		LDA	#$02
+		STA	$FD10
+		CLR	$6000
+* イニシエートROMへ切り替え、読み出しチェック
+		CLR	$FD10
+		TST	$6000
+		BEQ	IS_FM77AV1
+* 忘れずに標準RAMに戻しておく
+		STA	$FD10
+		PULS	A
+		ANDCC	#$FE
+		RTS
+* こちらは戻す必要はないのだけれど...
+IS_FM77AV1	STA	$FD10
+		PULS	A
+		ORCC	#$01
+		RTS
+
+*
+* FM77AV初期化
+*
+FM77AV_INIT	LBSR	MMR_INIT
+		LBSR	SUB_HALT
+		LBSR	MMR_VRAM
+* キーエンコーダに対し、スキャンコードを指定
+		LDA	#$00
+		STA	$D431
+FM77AV_INIT1	LDA	$D432
+		LSRA
+		BCC	FM77AV_INIT1
+		LDA	#$02
+		STA	$D431
+FM77AV_INIT2	LDA	$D432
+		LSRA
+		BCC	FM77AV_INIT2
+		RTS
+
+*
+* MMR初期化
+*
+* USEREG: A,X
+*
+MMR_INIT	CLR	$FD93
+		CLR	$FD90
+		LDX	#$FD80
+		LDA	#$30
+MMR_INIT1	STA	,X+
+		INCA
+		CMPA	#$40
+		BCS	MMR_INIT1
+		LDA	#$80
+		STA	$FD93
+		RTS
+
+*
+* MMR設定(VRAMアクセス)
+*
+* USEREG: A
+*
+MMR_VRAM	STA	$FD0F
+		LDA	#$10
+		STA	$FD88
+		INCA
+		STA	$FD89
+		INCA
+		STA	$FD8A
+		INCA
+		STA	$FD8B
+		LDA	#$1D
+		STA	$FD8D
+* 論理演算ON
+		LDA	#$08
+		STA	$D41B
+		LDA	#$80
+		STA	$D410
+		RTS
+
+*
+* MMR設定(F-BASIC ROM)
+*
+MMR_BASIC	LDA	#$38
+		STA	$FD88
+		INCA
+		STA	$FD89
+		INCA
+		STA	$FD8A
+		INCA
+		STA	$FD8B
+		INCA
+		INCA
+		STA	$FD8D
+		TST	$FD0F
+		RTS
+
+*
+* スペース待ち
+*
+KEY_SPACE	LDA	$FD01
+		BPL	KEY_SPACE
+* 押されるまで待つ
+KEY_SPACE1	LDA	$FD01
+		BMI	KEY_SPACE1
+		CMPA	#$57
+		BEQ	KEY_SPACE2
+		CMPA	#$58
+		BEQ	KEY_SPACE2
+		CMPA	#$35
+		BNE	KEY_SPACE1
+* 離されるまで待つ
+KEY_SPACE2	LDA	$FD01
+		BPL	KEY_SPACE2
+		RTS
+
+*--[ 漢字出力 ]---------------------------------------------------------------
+
+*
+* 文字列表示
+*
+* PARAM.: X	文字列
+*	  U	VRAMアドレス
+*
+PUT_STRING	LBSR	MMR_VRAM
+PUT_STRING1	LDA	,X+
+		BEQ	PUT_STRING4
+		CMPA	#$11
+		BEQ	PUT_STRING2
+		CMPA	#$12
+		BEQ	PUT_STRING3
+		LDB	,X+
+		LBSR	PUT_KANJI
+		LEAU	2,U
+		BRA	PUT_STRING1
+* 色指定
+PUT_STRING2	LDA	,X+
+		STA	<COLOR
+		BRA	PUT_STRING1
+* 座標指定(8dot単位)
+PUT_STRING3	LDA	1,X
+		LDB	#$A0
+		MUL
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		ORB	,X
+		LEAX	2,X
+		TFR	D,U
+		BRA	PUT_STRING1
+* 終了
+PUT_STRING4	LBSR	MMR_BASIC
+		RTS
+
+*
+* 漢字表示
+*
+* PARAM.: D	SHIFT JIS
+*	  U	VRAMアドレス
+*
+PUT_KANJI	PSHS	U,X
+		LBSR	SHIFT_TO_JIS
+		LEAU	KANJI_BUF,PCR
+		LBSR	GET_KANJI
+		LEAX	KANJI_BUF,PCR
+		LDU	2,S
+		LEAU	$8000,U
+* 16x12 クリア
+		CLR	$D411
+		CLR	$D412
+		LDB	#12
+PUT_KANJI1	TST	,U
+		TST	1,U
+		LEAU	$50,U
+		DECB
+		BNE	PUT_KANJI1
+		LEAU	-$3C0,U
+* 16x12 描画
+		LDA	<COLOR
+		STA	$D411
+		LDB	#12
+PUT_KANJI2	LDA	,X+
+		STA	$D412
+		TST	,U
+		LDA	,X+
+		STA	$D412
+		TST	1,U
+		LEAU	$50,U
+		DECB
+		BNE	PUT_KANJI2
+		PULS	X,U,PC
+
+*
+* 漢字パターン取得
+*
+* PARAM.: D	JIS
+*	  U	バッファ(32バイト)
+*
+GET_KANJI	PSHS	X,B,A
+* RA0-RA4
+		PSHS	B,A
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		ANDA	#$01
+		STD	,S
+* RA5-RA7
+		LDA	2,S
+		LSLA
+		ANDA	#$0E
+		ORA	,S
+		STA	,S
+* RA8
+		LDD	2,S
+		ANDA	#$70
+		ANDB	#$60
+		CMPD	#$2060
+		BEQ	GET_KANJI1
+		LDA	2,S
+		LSLA
+		ANDA	#$10
+		ORA	,S
+		STA	,S
+		BRA	GET_KANJI2
+GET_KANJI1	LDA	#$10
+		ORA	,S
+		STA	,S
+* RA9,RA10,RA11
+GET_KANJI2	LDD	2,S
+		LSRB
+		LSRB
+		LSRB
+		LSRB
+		LSRB
+		ANDB	#$03
+		PSHS	B
+		LSRA
+		LSRA
+		ANDA	#$1C
+		ORA	,S+
+		LEAX	GET_KANJI_TBL,PCR
+		CLRB
+GET_KANJI3	CMPA	,X+
+		BEQ	GET_KANJI4
+		INCB
+		CMPB	#$08
+		BCS	GET_KANJI3
+		CLRB
+GET_KANJI4	TFR	B,A
+		LSLA
+		LSLA
+		LSLA
+		LSLA
+		LSLA
+		ORA	,S
+		LDB	1,S
+		TFR	D,X
+		LEAS	4,S
+* 漢字ROMアドレス=X
+		LDA	#4
+		PSHS	A
+GET_KANJI5	STX	$FD20
+		LDD	$FD22
+		STD	,U
+		LEAX	1,X
+		STX	$FD20
+		LDD	$FD22
+		ORA	,U
+		ORB	1,U
+		COMA
+		COMB
+		STD	,U++
+		LEAX	1,X
+		STX	$FD20
+		LDD	$FD22
+		COMA
+		COMB
+		STD	,U++
+		LEAX	1,X
+		STX	$FD20
+		LDD	$FD22
+		COMA
+		COMB
+		STD	,U++
+		LEAX	1,X
+		DEC	,S
+		BNE	GET_KANJI5
+		PULS	A,X,PC
+
+*
+* SHIFT JIS→JIS変換
+*
+* PARAM.: D	SHIFT JIS
+* RESULT: D	JIS
+*
+SHIFT_TO_JIS	PSHS	A
+		ADDA	,S+
+		SUBB	#$1F
+		BMI	SHIFT_TO_JIS1
+		CMPB	#$61
+		ADCB	#$DE
+SHIFT_TO_JIS1	ADDD	#$1FA1
+		ANDA	#$7F
+		ANDB	#$7F
+		RTS
+
+*
+* 画面クリア
+*
+* USEREG: A,B,X,Y,U
+*
+CLS		LBSR	MMR_VRAM
+		CLR	$D411
+		CLR	$D412
+		LDU	#$8000
+		LDB	#200
+		PSHS	B
+CLS1		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B,X,Y
+		PULU	A,B
+		DEC	,S
+		BNE	CLS1
+		PULS	B,PC
+
+*--[ サブCPU ]----------------------------------------------------------------
+
+*
+* サブCPU HALT
+*
+* USEREG: A
+*
+SUB_HALT	LDA	$FD05
+		BMI	SUB_HALT
+		LDA	#$80
+		STA	$FD05
+SUB_HALT1	LDA	$FD05
+		BPL	SUB_HALT1
+		RTS
+
+*
+* サブCPU コマンド出力
+*
+* PARAM.: X	コマンドデータ($FC82～)
+*	  B	送信長さ
+* USEREG: A,B,X,U
+*
+SUB_CMD		LBSR	SUB_HALT
+* データ書き込み
+		LDU	#$FC80
+		CLR	,U+
+		CLR	,U+
+SUB_CMD1	LDA	,X+
+		STA	,U+
+		DECB
+		BNE	SUB_CMD1
+* サブCPU 実行
+		CLR	$FD05
+		RTS
+
+*
+* 文字列出力
+*
+* PARAM.: X	文字列
+* USEREG: A,B,X,U
+*
+PRINT		TFR	X,U
+* 文字数を数える
+		CLRB
+PRINT1		TST	,U+
+		BEQ	PRINT2
+		INCB
+		BRA	PRINT1
+* バッファにセット
+PRINT2		LEAU	BUFFER,PCR
+		LDA	#$03
+		STA	,U+
+		STB	,U+
+PRINT3		LDA	,X+
+		STA	,U+
+		DECB
+		BNE	PRINT3
+* 実行
+		LEAX	BUFFER,PCR
+		LDB	1,X
+		INCB
+		INCB
+		BRA	SUB_CMD
+
+*--[ RS-232Cドライバ ]--------------------------------------------------------
+
+*
+* RS-232C初期化
+* (FM77AV20/40以降)
+*
+RS_INIT		PSHS	A,B
+		LDB	#$02
+RS_INIT0	LDA	#$01
+		STA	$FD0C
+* 内部リセットをかけ、待つ
+		LDA	#$40
+		STA	$FD07
+		CLRA
+RS_INIT1	DECA
+		BNE	RS_INIT1
+* パリティなし, 8bit長, ストップビット1
+		LDA	#$4E
+		STA	$FD07
+		LDA	#$11
+		STA	$FD07
+* 9600bps
+		LDA	#$0C
+		STA	$FD0B
+* なぜか２回実行しないと動作しない
+		DECB
+		BNE	RS_INIT0
+* フラグON
+		DECB
+		STB	<RS_FLAG
+		PULS	A,B,PC
+
+*
+* RS-232C 1バイト出力
+*
+* PARAM.: A	送信データ
+*
+RS_PUTC		TST	<RS_FLAG
+		BEQ	RS_PUTC2
+		PSHS	A
+* 送信レディ待ち
+RS_PUTC1	LDA	$FD07
+		LSRA
+		BCC	RS_PUTC1
+* データ送信
+		PULS	A
+		STA	$FD06
+RS_PUTC2	RTS
+
+*
+* RS-232C 文字列出力(改行つき)
+*
+* PARAM.: Y	送信文字列
+*
+RS_PUTS		PSHS	A
+RS_PUTS1	LDA	,Y+
+		BEQ	RS_PUTS2
+		BSR	RS_PUTC
+		BRA	RS_PUTS1
+RS_PUTS2	LDA	#$0D
+		BSR	RS_PUTC
+		LDA	#$0A
+		BSR	RS_PUTC
+		PULS	A,PC
+
+*
+* RS-232C デバッグ
+*
+RS_DEBUG	PSHS	CC,A,B,DP,X,Y,U
+* CC
+		LEAX	DEBUG_DBG+3,PCR
+		LDA	,S
+		LBSR	SET2HEX
+* A
+		LEAX	DEBUG_DBG+8,PCR
+		LDA	1,S
+		LBSR	SET2HEX
+* B
+		LEAX	DEBUG_DBG+13,PCR
+		LDA	2,S
+		LBSR	SET2HEX
+* DP
+		LEAX	DEBUG_DBG+19,PCR
+		LDA	3,S
+		LBSR	SET2HEX
+* X
+		LEAX	DEBUG_DBG+24,PCR
+		LDD	4,S
+		LBSR	SET4HEX
+* Y
+		LEAX	DEBUG_DBG+31,PCR
+		LDD	6,S
+		LBSR	SET4HEX
+* U
+		LEAX	DEBUG_DBG+38,PCR
+		LDD	8,S
+		LBSR	SET4HEX
+* S
+		LEAX	DEBUG_DBG+45,PCR
+		TFR	S,D
+		ADDD	#12
+		LBSR	SET4HEX
+* PC
+		LEAX	DEBUG_DBG+53,PCR
+		LDD	10,S
+		LBSR	SET4HEX
+* 出力
+		LEAY	DEBUG_DBG,PCR
+		BSR	RS_PUTS
+		PULS	CC,A,B,DP,X,Y,U,PC
+
+*
+* １６進４桁セット
+*
+* PARAM.: D	データ
+*	  X	バッファ
+*
+SET4HEX		BSR	SET2HEX
+		TFR	B,A
+
+*
+* １６進２桁セット
+*
+* PARAM.: A	データ
+*	  X	バッファ
+*
+SET2HEX		PSHS	A
+		LSRA
+		LSRA
+		LSRA
+		LSRA
+		BSR	SET1HEX
+		PULS	A
+		ANDA	#$0F
+
+*
+* １６進１桁セット
+*
+* PARAM.: A	データ
+*	  X	バッファ
+*
+SET1HEX		ADDA	#$30
+		CMPA	#$3A
+		BCS	SET1HEX1
+		ADDA	#$07
+SET1HEX1	STA	,X+
+		RTS
+
+*--[ DOS ]--------------------------------------------------------------------
+
+*
+* ディスクリセット
+*
+DISK_RST	LBSR	CLS
+		CLR	<DRIVE
+DISK_RST1	LBSR	RESTORE
+		BCC	DISK_RST2
+		LBSR	DISK_ERR
+		BRA	DISK_RST1
+DISK_RST2	RTS
+
+*
+* MS-DOS 360KBディスク
+* フォーマットおよび作成
+*
+MS_FORMAT	LBSR	CLS
+		LEAX	FORMAT_MSG,PCR
+		LBSR	PUT_STRING
+		CLR	<DRIVE
+		CLR	<TRACK
+* フォーマット
+MS_FORMAT1	CLR	<SIDE
+MS_FORMAT2	LBSR	FORMAT
+		BCC	MS_FORMAT3
+		LBSR	DISK_ERR
+		BRA	MS_FORMAT2
+* 次のサイド
+MS_FORMAT3	INC	<SIDE
+		LDA	<SIDE
+		CMPA	#$02
+		BCS	MS_FORMAT2
+* 次のトラック
+		INC	<TRACK
+		LDA	<TRACK
+		CMPA	#40
+		BCS	MS_FORMAT1
+* トラック0
+		LBSR	MS_T0MAKE
+		CLR	<TRACK
+		CLR	<SIDE
+MS_FORMAT4	LEAX	DISK_BUF,PCR
+		LDA	#$01
+		STA	<SECTOR
+		LDA	#$09
+		STA	<SECTORS
+		LBSR	WRITEM
+		BCC	MS_FORMAT5
+		LBSR	DISK_ERR
+		BRA	MS_FORMAT4
+* トラック1
+MS_FORMAT5	LBSR	MS_T1MAKE
+		INC	<SIDE
+MS_FORMAT6	LEAX	DISK_BUF,PCR
+		LDA	#$01
+		STA	<SECTOR
+		LDA	#$03
+		STA	<SECTORS
+		LBSR	WRITEM
+		BCC	MS_FORMAT7
+		LBSR	DISK_ERR
+		BRA	MS_FORMAT6
+MS_FORMAT7	RTS
+
+*
+* トラック0 データ作成
+*
+MS_T0MAKE	LEAX	DISK_BUF,PCR
+		LEAU	DPB_360,PCR
+		LDB	#64
+MS_T0MAKE1	LDA	,U+
+		STA	,X+
+		DECB
+		BNE	MS_T0MAKE1
+		LDB	#192
+MS_T0MAKE2	CLR	,X+
+		DECB
+		BNE	MS_T0MAKE2
+MS_T0MAKE3	CLR	,X+
+		DECB
+		BNE	MS_T0MAKE3
+* FAT
+		LBSR	MS_MAKE_FAT
+		LBSR	MS_MAKE_FAT
+* ディレクトリ
+		LDB	#$40
+		PSHS	B
+MS_T0MAKE4	LBSR	MS_MAKE_DIR
+		DEC	,S
+		BNE	MS_T0MAKE4
+		PULS	B,PC
+
+*
+* トラック１ データ作成
+*
+MS_T1MAKE	LEAX	DISK_BUF,PCR
+		LDB	#48
+		PSHS	B
+MS_T1MAKE1	LBSR	MS_MAKE_DIR
+		DEC	,S
+		BNE	MS_T1MAKE1
+		PULS	B,PC
+
+*
+* FAT作成
+*
+* PARAM.: X	データバッファ
+* USEREG: A,B
+*
+MS_MAKE_FAT	LDA	#$FD
+		STA	,X+
+		LDA	#$FF
+		STA	,X+
+		STA	,X+
+		LDB	#$FD
+		CLRA
+MS_MAKE_FAT1	STA	,X+
+		DECB
+		BNE	MS_MAKE_FAT1
+MS_MAKE_FAT2	STA	,X+
+		DECB
+		BNE	MS_MAKE_FAT2
+MS_MAKE_FAT3	STA	,X+
+		DECB
+		BNE	MS_MAKE_FAT3
+MS_MAKE_FAT4	STA	,X+
+		DECB
+		BNE	MS_MAKE_FAT4
+		RTS
+
+*
+* ヌルディレクトリ作成
+*
+* PARAM.: X	データバッファ
+* USEREG: A,B
+*
+MS_MAKE_DIR	CLR	,X+
+		LDB	#$1F
+		LDA	#$E5
+MS_MAKE_DIR1	STA	,X+
+		DECB
+		BNE	MS_MAKE_DIR1
+		RTS
+
+*
+* ファイル作成
+*
+* PARAM.: X	ファイルネーム(8+3)
+* CLUSTERS,LASTBYTEは予めセットしておく
+*
+FILE_CREATE	PSHS	X
+		CLR	<TRACK
+		CLR	<SIDE
+* 先頭トラック読み込み
+FILE_CREATE1	LDA	#$01
+		STA	<SECTOR
+		LDA	#$09
+		STA	<SECTORS
+		LEAX	DISK_BUF,PCR
+		LBSR	READM
+		BCC	FILE_CREATE2
+		LBSR	DISK_ERR
+		BRA	FILE_CREATE1
+* データ設定
+FILE_CREATE2	LEAX	DISK_BUF+$200,PCR
+		LBSR	MAKE_FAT
+		LEAX	DISK_BUF+$A00,PCR
+		PULS	U
+		LBSR	MAKE_DIR
+* 先頭トラック書き込み
+FILE_CREATE3	LDA	#$01
+		STA	<SECTOR
+		LDA	#$09
+		STA	<SECTORS
+		LEAX	DISK_BUF,PCR
+		LBSR	WRITEM
+		BCC	FILE_CREATE4
+		LBSR	DISK_ERR
+		BRA	FILE_CREATE3
+* C,H,Rを作成しておく
+FILE_CREATE4	LDD	<CLUSTER
+		LBSR	CLUS_TO_CHR
+		RTS
+
+*
+* FAT設定
+*
+* PARAM.: X	第1FAT先頭アドレス
+* USEREG: A,B,X,Y,U
+*
+MAKE_FAT	LDU	#$0002
+* 空いているクラスタをサーチする
+MAKE_FAT1	LBSR	GET_FAT
+		CMPD	#$0000
+		BEQ	MAKE_FAT2
+		LEAU	1,U
+		BRA	MAKE_FAT1
+* 先頭FAT番号確定
+MAKE_FAT2	STU	<CLUSTER
+		LDD	<CLUSTERS
+		CMPD	#$0001
+		BEQ	MAKE_FAT4
+		TFR	D,Y
+		LEAY	-1,Y
+		TFR	U,D
+		ADDD	#$0001
+* +1のクラスタ番号を連続して設定する
+MAKE_FAT3	BSR	SET_FAT
+		ADDD	#$0001
+		LEAY	-1,Y
+		LEAU	1,U
+		BNE	MAKE_FAT3
+* 最終クラスタは、$FFFをセット
+MAKE_FAT4	LDD	#$0FFF
+		BSR	SET_FAT
+		RTS
+
+*
+* FATデータ取得
+*
+* PARAM.: X	FAT先頭アドレス
+*	  U	クラスタ番号
+* RESULT: D	FATデータ(12bit)
+*
+GET_FAT		TFR	U,D
+		LSRA
+		RORB
+		BCS	GET_FAT_ODD
+* 偶数パターン
+GET_FAT_EVEN	PSHS	D
+		ADDD	,S
+		ADDD	,S
+		LEAS	2,S
+		LDD	D,X
+		EXG	A,B
+		ANDA	#$0F
+		RTS
+* 奇数パターン
+GET_FAT_ODD	PSHS	D
+		ADDD	,S
+		ADDD	,S
+		LEAS	2,S
+		ADDD	#1
+		LDD	D,X
+		EXG	A,B
+		LSRA
+		RORB
+		LSRA
+		RORB
+		LSRA
+		RORB
+		LSRA
+		RORB
+		RTS
+
+*
+* FATデータセット
+*
+* PARAM.: X	第1FAT先頭アドレス
+*	  U	クラスタ番号
+*	  D	FATデータ(12bit)
+*
+SET_FAT		PSHS	D,X
+		PSHS	D
+		TFR	U,D
+		LSRA
+		RORB
+		BCS	SET_FAT_ODD
+* 偶数パターン
+SET_FAT_EVEN	PSHS	D
+		ADDD	,S
+		ADDD	,S
+		LEAS	2,S
+		LEAX	D,X
+* 先に掃除しておく
+		LDB	1,X
+		ANDB	#$F0
+		STB	1,X
+* スタックから取り出して、OR
+		PULS	D
+		EXG	A,B
+		STA	,X
+		ORB	1,X
+		STB	1,X
+* 第2FAT
+		STD	$400,X
+		PULS	D,X,PC
+* 奇数パターン
+SET_FAT_ODD	PSHS	D
+		ADDD	,S
+		ADDD	,S
+		LEAS	2,S
+		ADDD	#1
+		LEAX	D,X
+* 先に掃除しておく
+		LDA	,X
+		ANDA	#$0F
+		STA	,X
+* スタックから取り出して、OR
+		PULS	D
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		LSLB
+		ROLA
+		EXG	A,B
+		ORA	,X
+		STA	,X
+		STB	1,X
+* 第2FAT
+		STD	$400,X
+		PULS	D,X,PC
+
+*
+* ディレクトリ作成
+*
+* PARAM.: X	ディレクトリエリア先頭アドレス
+*	  U	ファイルネーム(8+3)
+* USEREG: A,B,X,U
+*
+MAKE_DIR	LDA	,X
+		BEQ	MAKE_DIR1
+		CMPA	#$E5
+		BEQ	MAKE_DIR1
+		LEAX	32,X
+		BRA	MAKE_DIR
+* ファイルネームをコピー
+MAKE_DIR1	LDB	#11
+MAKE_DIR2	LDA	,U+
+		STA	,X+
+		DECB
+		BNE	MAKE_DIR2
+* アトリビュート
+		LDA	#$20
+		STA	,X+
+* 未使用領域はクリア
+		LDB	#10
+MAKE_DIR3	CLR	,X+
+		DECB
+		BNE	MAKE_DIR3
+* 時間
+		LDD	#$0060
+		STD	,X++
+		LDD	#$1427
+		STD	,X++
+* 先頭クラスタ
+		LDD	<CLUSTER
+		EXG	A,B
+		STD	,X++
+* ファイルサイズ
+		CLR	,X
+		CLR	1,X
+		CLR	2,X
+		CLR	3,X
+		LDD	<CLUSTERS
+		LDU	<LASTBYTE
+		CMPU	#$0000
+		BEQ	MAKE_DIR4
+		SUBD	#$0001
+MAKE_DIR4	LSLB
+		ROLA
+		LSLB
+		ROLA
+		EXG	A,B
+		STD	1,X
+* 余りバイト処理
+		LDD	<LASTBYTE
+		STB	,X
+		ADDA	1,X
+		BCS	MAKE_DIR5
+		STA	1,X
+		RTS
+MAKE_DIR5	STA	1,X
+		INC	2,X
+		RTS
+
+*
+* クラスタ番号→カレントC,H,R
+*
+* PARAM.: D	クラスタ番号
+*
+CLUS_TO_CHR	PSHS	X
+		TFR	D,X
+		CLR	<C_TRACK
+		CLR	<C_SIDE
+		LDA	#$09
+		STA	<C_SECTOR
+* ループ
+CLUS_TO_CHR1	LDA	<C_SECTOR
+		INCA
+		INCA
+		STA	<C_SECTOR
+		CMPA	#$0A
+		BCS	CLUS_TO_CHR2
+* 次のサイド
+		SUBA	#$09
+		STA	<C_SECTOR
+		INC	<C_SIDE
+		LDA	<C_SIDE
+		CMPA	#$01
+		BEQ	CLUS_TO_CHR2
+* 次のトラック
+		CLR	<C_SIDE
+		INC	<C_TRACK
+* NEXT
+CLUS_TO_CHR2	LEAX	-1,X
+		BNE	CLUS_TO_CHR1
+		PULS	X,PC
+
+*
+* ファイル書き込み
+*
+* PARAM.: X	バッファアドレス
+*	  U	書き込み最大サイズ(KB)
+*
+FILE_WRITE	CMPU	<CLUSTERS
+		BCS	FILE_WRITE1
+		LDU	<CLUSTERS
+* U=今回書き込むクラスタ数
+FILE_WRITE1	PSHS	U
+		LDD	<CLUSTERS
+		SUBD	,S
+		STD	<CLUSTERS
+		LDD	,S
+		ADDD	,S
+		STD	,S
+* ,S=今回書き込むセクタ数
+FILE_WRITE2	LDB	#10
+		SUBB	<C_SECTOR
+		CLRA
+		CMPD	,S
+		BCS	FILE_WRITE4
+		LDB	1,S
+* B=このトラックで書くセクタ
+FILE_WRITE4	STB	<C_SECTORS
+		LDA	<C_TRACK
+		STA	<TRACK
+		LDA	<C_SIDE
+		STA	<SIDE
+		LDA	<C_SECTOR
+		STA	<SECTOR
+		LDA	<C_SECTORS
+		STA	<SECTORS
+		PSHS	X
+		LBSR	WRITEM
+		TSTA
+		BCC	FILE_WRITE5
+* 書き込みエラー
+		LBSR	DISK_ERR
+		PULS	X
+		BRA	FILE_WRITE2
+* NEXT
+FILE_WRITE5	LEAS	2,S
+		CLRA
+		LDB	<C_SECTORS
+		PSHS	D
+		LDD	2,S
+		SUBD	,S++
+		STD	,S
+* C,H,R
+		LDD	<C_SIDE
+		ADDB	<C_SECTORS
+		CMPB	#$0A
+		BCS	FILE_WRITE6
+		LDB	#$01
+		INCA
+		CMPA	#$01
+		BEQ	FILE_WRITE6
+		CLRA
+		INC	<C_TRACK
+* 終了チェック
+FILE_WRITE6	STD	<C_SIDE
+		LDD	,S
+		BNE	FILE_WRITE2
+		PULS	U,PC
+
+*
+* ディスクエラー
+*
+* PARAM.: A	FDCステータス
+* USEREG: A,B,X,U
+*
+DISK_ERR	LEAX	NOTREADY_MSG,PCR
+		BITA	#$80
+		BNE	DISK_ERR1
+		LEAX	WRPROTECT_MSG,PCR
+		BITA	#$40
+		BNE	DISK_ERR1
+		LDA	<TYPE
+		LEAX	SEEKERR_MSG,PCR
+		TSTA
+		BEQ	DISK_ERR1
+		LEAX	READERR_MSG,PCR
+		DECA
+		BEQ	DISK_ERR1
+		LEAX	WRITEERR_MSG,PCR
+* 表示
+DISK_ERR1	LBSR	PUT_STRING
+		LEAX	SPACE_MSG,PCR
+		LBSR	PUT_STRING
+* キー待ち
+		LBSR	KEY_SPACE
+* 終了
+		LEAX	CLEAR_MSG,PCR
+		LBSR	PUT_STRING
+		LBSR	RESTORE
+		RTS
+
+*--[ FDCドライバ ]------------------------------------------------------------
+
+*
+* FDC リストア
+*
+* RESULT: A	Type1 ステータス
+*	  CY	エラーフラグ
+*
+RESTORE		LDA	<DRIVE
+		ORA	#$80
+		STA	$FD1D
+* BUSY待ち
+RESTORE1	LDA	$FD18
+		LSRA
+		BCS	RESTORE1
+* リストアコマンド書き込み
+		CLR	<TYPE
+		LDA	#$08
+		STA	$FD18
+* 終了待ち
+RESTORE2	LDA	$FD1F
+		BITA	#$40
+		BEQ	RESTORE2
+* ステータス
+		LDA	$FD18
+		ANDA	#$D8
+		BEQ	RESTORE3
+		ORCC	#$01
+		RTS
+* トラック0を記憶
+RESTORE3	TST	<DRIVE
+		BNE	RESTORE4
+		CLR	<DRIVE0_T
+		RTS
+RESTORE4	CLR	<DRIVE1_T
+		RTS
+
+*
+* FDC シーク
+*
+* RESULT: A	Type1 ステータス
+*	  CY	エラーフラグ
+* USEREG: B
+*
+SEEK		LDA	<DRIVE
+		ORA	#$80
+		STA	$FD1D
+* トラックレジスタへ現在のトラックを書き込む
+		TST	<DRIVE
+		BNE	SEEK1
+		LDA	<DRIVE0_T
+		STA	$FD19
+		BRA	SEEK2
+SEEK1		LDA	<DRIVE1_T
+		STA	$FD19
+* BUSY待ち
+SEEK2		LDA	$FD18
+		LSRA
+		BCS	SEEK2
+* シークコマンド書き込み
+		LDA	<TRACK
+		STA	$FD1B
+		CLR	<TYPE
+		LDA	#$18
+		STA	$FD18
+* 終了待ち
+SEEK3		LDA	$FD1F
+		BITA	#$40
+		BEQ	SEEK3
+* ステータス
+		LDA	$FD18
+		ANDA	#$98
+		BEQ	SEEK4
+		ORCC	#$01
+		RTS
+* トラックセーブ
+SEEK4		TST	<DRIVE
+		BNE	SEEK5
+		LDB	<TRACK
+		STB	<DRIVE0_T
+		ANDCC	#$FE
+		RTS
+SEEK5		LDB	<TRACK
+		STB	<DRIVE1_T
+		ANDCC	#$FE
+		RTS
+
+*
+* FDC フォーマット
+*
+* RESULT: A	Type3 ステータス
+*	  CY	エラーフラグ
+*
+FORMAT		LBSR	SEEK
+		BCC	FORMAT1
+		RTS
+FORMAT1		LBSR	FORMAT_MAKE
+		LEAU	DISK_BUF,PCR
+		LDA	<TRACK
+		STA	$FD19
+		LDA	#$01
+		STA	$FD1A
+		LDA	<SIDE
+		STA	$FD1C
+* BUSY待ち
+FORMAT2		LDA	$FD18
+		LSRA
+		BCS	FORMAT2
+* コマンド実行
+		LDA	#$02
+		STA	<TYPE
+		LDA	#$F0
+		STA	$FD18
+* データ転送
+FORMAT3		LDA	$FD1F
+		BPL	FORMAT4
+		LDA	,U+
+		STA	$FD1B
+		BRA	FORMAT3
+FORMAT4		BITA	#$40
+		BEQ	FORMAT3
+* 転送終了
+		LDA	$FD18
+		ANDA	#$E8
+		BEQ	FORMAT5
+		ORCC	#$01
+		RTS
+FORMAT5		CLRA
+		RTS
+
+*
+* FDCフォーマット データ作成
+*
+* USEREG: A,B,U
+*
+FORMAT_MAKE	LEAU	DISK_BUF,PCR
+		LBSR	FM_PRE
+		LDA	#$01
+		STA	<SECTOR
+FORMAT_MAKE1	LBSR	FM_ID
+		LBSR	FM_DATA
+		INC	<SECTOR
+		LDA	<SECTOR
+		CMPA	#$0A
+		BCS	FORMAT_MAKE1
+		LBSR	FM_POST
+		RTS
+
+*
+* FDCフォーマット プリアンブル作成
+*
+* USEREG: A,B,U
+*
+FM_PRE		LDD	#$4E50
+		LBSR	FM_SUB
+		LDD	#$000C
+		LBSR	FM_SUB
+* INDEXマーク
+		LDA	#$F6
+		STA	,U+
+		LDA	#$F6
+		STA	,U+
+		LDA	#$F6
+		STA	,U+
+		LDA	#$FC
+		STA	,U+
+* GAP1
+		LDD	#$4E32
+		LBSR	FM_SUB
+		RTS
+
+*
+* FDCフォーマット ID作成
+*
+* USEREG: A,B,U
+*
+FM_ID		LDD	#$000C
+		LBSR	FM_SUB
+* IDマーク
+		LDA	#$F5
+		STA	,U+
+		LDA	#$F5
+		STA	,U+
+		LDA	#$F5
+		STA	,U+
+		LDA	#$FE
+		STA	,U+
+* C,H,R,N
+		LDA	<TRACK
+		STA	,U+
+		LDA	<SIDE
+		STA	,U+
+		LDA	<SECTOR
+		STA	,U+
+		LDA	#$02
+		STA	,U+
+* CRC
+		LDA	#$F7
+		STA	,U+
+* GAP2
+		LDD	#$4E16
+		LBSR	FM_SUB
+		RTS
+
+*
+* FDCフォーマット データ部作成
+*
+* USEREG: A,B,U
+*
+FM_DATA		LDD	#$000C
+		LBSR	FM_SUB
+* データマーク
+		LDA	#$F5
+		STA	,U+
+		LDA	#$F5
+		STA	,U+
+		LDA	#$F5
+		STA	,U+
+		LDA	#$FB
+		STA	,U+
+* データ
+		LDD	#$0000
+		LBSR	FM_SUB
+		LDD	#$0000
+		LBSR	FM_SUB
+* CRC
+		LDA	#$F7
+		STA	,U+
+* GAP3
+		LDD	#$4E54
+		LBSR	FM_SUB
+		RTS
+
+*
+* FDCフォーマット ポストアンブル部作成
+*
+* USEREG: A,B,U
+*
+FM_POST		LDD	#$4E00
+		LBSR	FM_SUB
+		LDD	#$4E90
+		LBSR	FM_SUB
+		RTS
+
+*
+* FDCフォーマット サブ
+*
+* PARAM.: A	書き込みデータ
+*	  B	繰り返し数
+*
+FM_SUB		STA	,U+
+		DECB
+		BNE	FM_SUB
+		RTS
+
+*
+* FDC セクタ読み込み(セクタ連続)
+*
+* PARAM.: X	データバッファ
+* RESULT: A	Type2 ステータス
+*	  CY	エラーフラグ
+*
+READM		LBSR	SEEK
+		BCC	READM1
+		RTS
+READM1		LDA	<TRACK
+		STA	$FD19
+		LDA	<SECTOR
+		STA	$FD1A
+		LDA	<SIDE
+		STA	$FD1C
+* BUSY待ち
+READM2		LDA	$FD18
+		LSRA
+		BCS	READM2
+* コマンド実行
+		LDA	#$01
+		STA	<TYPE
+		LDA	#$80
+		STA	$FD18
+* データ転送
+READM3		LDA	$FD1F
+		BPL	READM4
+		LDA	$FD1B
+		STA	,X+
+		BRA	READM3
+READM4		BITA	#$40
+		BEQ	READM3
+* 転送終了
+		LDA	$FD18
+		ANDA	#$BC
+		BEQ	READM5
+		ORCC	#$01
+		RTS
+* 次のセクタへ
+READM5		INC	<SECTOR
+		DEC	<SECTORS
+		BNE	READM1
+		RTS
+
+*
+* FDC セクタ書き込み(セクタ連続)
+*
+* PARAM.: X	データバッファ
+* RESULT: A	Type2 ステータス
+*	  CY	エラーフラグ
+*
+WRITEM		LBSR	SEEK
+		BCC	WRITEM1
+		RTS
+WRITEM1		LDA	<TRACK
+		STA	$FD19
+		LDA	<SECTOR
+		STA	$FD1A
+		LDA	<SIDE
+		STA	$FD1C
+* BUSY待ち
+WRITEM2		LDA	$FD18
+		LSRA
+		BCS	WRITEM2
+* コマンド実行
+		LDA	#$02
+		STA	<TYPE
+		LDA	#$A0
+		STA	$FD18
+* データ転送
+WRITEM3		LDA	$FD1F
+		BPL	WRITEM4
+		LDA	,X+
+		STA	$FD1B
+		BRA	WRITEM3
+WRITEM4		BITA	#$40
+		BEQ	WRITEM3
+* 転送終了
+		LDA	$FD18
+		ANDA	#$FC
+		BEQ	WRITEM5
+		ORCC	#$01
+		RTS
+* 次のセクタへ
+WRITEM5		INC	<SECTOR
+		DEC	<SECTORS
+		BNE	WRITEM1
+		RTS
+
+*
+* DPB ($40バイト)
+*
+DPB_360		FCB	$EB,$FE,$90		* ジャンプルーチン
+		FCC	/MSDOS5.0/		* OEM NAME
+		FCB	$00,$02			* バイト数/セクタ
+		FCB	$02			* セクタ数/クラスタ
+		FCB	$01,$00			* 予約セクタ数
+		FCB	$02			* FAT数
+		FCB	$70,$00			* ルートディレクトリ最大数
+		FCB	$D0,$02			* 物理セクタ数
+		FCB	$FD			* メディアID
+		FCB	$02,$00			* FATセクタ数
+		FCB	$09,$00			* セクタ数/トラック
+		FCB	$02			* なんだっけ？
+		FCB	$00,$00,$00,$00
+		FCB	$00,$00,$00,$00
+		FCB	$00,$00,$00,$00
+		FCB	$00,$00,$00,$00
+		FCC	/NO NAME    /		* ボリュームラベル
+		FCC	/FAT12   /
+		FCB	$00,$00			* 予備
+
+*
+* サブCPU コマンド
+*
+SUBINIT_CMD	FCB	$01,$00,40,25,0,25,0,1,0
+SUBCONS_CMD	FCB	$0C,$06
+INKEY_CMD	FCB	$29,$01
+
+*
+* 漢字ROM変換テーブル
+*
+GET_KANJI_TBL	FCB	$09,$0A,$0D,$0E
+		FCB	$0F,$11,$12,$13
+
+*
+* デバッグ メッセージ
+*
+DEBUG_DBG	FCC	/CC-00 A-00 B-00 DP-00 X-0000 /
+		FCC	/Y-0000 U-0000 S-0000 PC-0000/,0
+
+*
+* ファイルネーム
+*
+FBASIC_FN	FCC	/FBASIC30ROM/,0
+BOOTBAS_FN	FCC	/BOOT_BASROM/,0
+BOOTDOS_FN	FCC	/BOOT_DOSROM/,0
+SUBSYSC_FN	FCC	/SUBSYS_CROM/,0
+KANJI_FN	FCC	/KANJI   ROM/,0
+INITIATE_FN	FCC	/INITIATEROM/,0
+SUBSYSA_FN	FCC	/SUBSYS_AROM/,0
+SUBSYSB_FN	FCC	/SUBSYS_BROM/,0
+SUBSYSCG_FN	FCC	/SUBSYSCGROM/,0
+
+*
+* 表示メッセージ
+*
+FM77AV_MSG	FCB	$12,8,11
+		FCC	"FM77AV/20/40/EX/SX ONLY!",0
+TITLE_MSG	FCB	$11,$07,$12,$17,$06
+		FCC	/ＸＭ７　ＲＯＭセーブユーティリティ/
+		FCB	$12,$1C,$08
+		FCC	/（Ｃ）　１９９９　ＰＩ．/
+		FCC	$12,$12,$10
+		FCC	/ドライブ０にブランク２Ｄディスクをセットして/,0
+FORMAT_MSG	FCB	$11,$07,$12,$1D,$09
+		FCC	/フォーマットしています/,0
+FBASIC_MSG	FCB	$11,$07,$12,$13,$09
+		FCC	/Ｆ－ＢＡＳＩＣ　ＲＯＭ　をセーブしています/,0
+BOOT_MSG	FCB	$11,$07,$12,$18,$09
+		FCC	/ブートＲＯＭ　をセーブしています/,0
+SUBSYSC_MSG	FCB	$11,$07,$12,$12,$09
+		FCC	/サブシステムＲＯＭ（Ｃ）　をセーブしています/,0
+KANJI_MSG	FCB	$11,$07,$12,$18,$09
+		FCC	/漢字ＲＯＭ　をセーブしています/,0
+INITIATE_MSG	FCB	$11,$07,$12,$15,$09
+		FCC	/イニシエートＲＯＭ　をセーブしています/,0
+SUBSYSA_MSG	FCB	$11,$07,$12,$12,$09
+		FCC	/サブシステムＲＯＭ（Ａ）　をセーブしています/,0
+SUBSYSB_MSG	FCB	$11,$07,$12,$12,$09
+		FCC	/サブシステムＲＯＭ（Ｂ）　をセーブしています/,0
+SUBSYSCG_MSG	FCB	$11,$07,$12,$11,$09
+		FCC	/サブシステムＲＯＭ（ＣＧ）　をセーブしています/,0
+NOTREADY_MSG	FCB	$11,$02,$12,$19,$10
+		FCC	/ディスクがセットされていません/,0
+WRPROTECT_MSG	FCB	$11,$02,$12,$1A,$10
+		FCC	/ライトプロテクトされています/,0
+SEEKERR_MSG	FCB	$11,$02,$12,$20,$10
+		FCC	/シークエラーです/,0
+READERR_MSG	FCB	$11,$02,$12,$1F,$10
+		FCC	/読み込みエラーです/,0
+WRITEERR_MSG	FCB	$11,$02,$12,$1F,$10
+		FCC	/書き込みエラーです/,0
+SPACE_MSG	FCB	$11,$04,$12,$1A,$12
+		FCC	/スペース/
+		FCB	$11,$07
+		FCC	/キーを押してください/,0
+CLEAR_MSG	FCB	$11,$07,$12,$19,$10
+		FCC	/　　　　　　　　　　　　　　　/
+		FCB	$12,$1A,$12
+		FCC	/　　　　　　　　　　　　　　/,0
+COMPLETE_MSG	FCB	$11,$07,$12,$22,$09
+		FCC	/終了しました/,0
+
+*
+* プログラム終了
+*
+		END

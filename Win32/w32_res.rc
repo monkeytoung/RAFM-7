@@ -1,0 +1,679 @@
+/*
+ *	FM-7 EMULATOR "XM7"
+ *
+ *	Copyright (C) 1999-2001 ＰＩ．(ytanaka@ipc-tokai.or.jp)
+ *	[ Win32API リソース ]
+ */
+
+#ifdef _WIN32
+
+#ifndef VK_F12
+#include <winres.h>
+#endif
+#include "w32_res.h"
+
+/*
+ *	メインメニュー
+ */
+IDR_MAINMENU MENU DISCARDABLE
+BEGIN
+	POPUP "ファイル(&F)"
+	BEGIN
+		MENUITEM "開く(&O)...",				IDM_OPEN
+		MENUITEM "上書き保存(&S)",			IDM_SAVE
+		MENUITEM "名前を付けて保存(&A)...",	IDM_SAVEAS
+		MENUITEM SEPARATOR
+		MENUITEM "リセット(&R)\tF12", 		IDM_RESET
+		MENUITEM SEPARATOR
+		MENUITEM "BASICモード(&B)",			IDM_BASIC
+		MENUITEM "DOSモード(&D)", 			IDM_DOS
+		MENUITEM SEPARATOR
+		MENUITEM "終了(&X)\tAlt+F4",		IDM_EXIT
+	END
+	POPUP "ドライブ&1"
+	BEGIN
+		MENUITEM "開く(&O)...",				IDM_D1OPEN
+		MENUITEM "両ドライブで開く(&B)...",	IDM_DBOPEN
+		MENUITEM "取り外す(&E)",			IDM_D1EJECT
+		MENUITEM SEPARATOR
+		MENUITEM "一時取り出し(&T)",		IDM_D1TEMP
+		MENUITEM "書き込み禁止(&W)",		IDM_D1WRITE
+		MENUITEM SEPARATOR
+		MENUITEM "メディア00",				IDM_D1MEDIA00
+		MENUITEM "メディア01",				IDM_D1MEDIA01
+		MENUITEM "メディア02",				IDM_D1MEDIA02
+		MENUITEM "メディア03",				IDM_D1MEDIA03
+		MENUITEM "メディア04",				IDM_D1MEDIA04
+		MENUITEM "メディア05",				IDM_D1MEDIA05
+		MENUITEM "メディア06",				IDM_D1MEDIA06
+		MENUITEM "メディア07",				IDM_D1MEDIA07
+		MENUITEM "メディア08",				IDM_D1MEDIA08
+		MENUITEM "メディア09",				IDM_D1MEDIA09
+		MENUITEM "メディア10",				IDM_D1MEDIA10
+		MENUITEM "メディア11",				IDM_D1MEDIA11
+		MENUITEM "メディア12",				IDM_D1MEDIA12
+		MENUITEM "メディア13",				IDM_D1MEDIA13
+		MENUITEM "メディア14",				IDM_D1MEDIA14
+		MENUITEM "メディア15",				IDM_D1MEDIA15
+	END
+	POPUP "ドライブ&0"
+	BEGIN
+		MENUITEM "開く(&O)...",				IDM_D0OPEN
+		MENUITEM "両ドライブで開く(&B)...",	IDM_DBOPEN
+		MENUITEM "取り外す(&E)",			IDM_D0EJECT
+		MENUITEM SEPARATOR
+		MENUITEM "一時取り出し(&T)",		IDM_D0TEMP
+		MENUITEM "書き込み禁止(&W)",		IDM_D0WRITE
+		MENUITEM SEPARATOR
+		MENUITEM "メディア00",				IDM_D0MEDIA00
+		MENUITEM "メディア01",				IDM_D0MEDIA01
+		MENUITEM "メディア02",				IDM_D0MEDIA02
+		MENUITEM "メディア03",				IDM_D0MEDIA03
+		MENUITEM "メディア04",				IDM_D0MEDIA04
+		MENUITEM "メディア05",				IDM_D0MEDIA05
+		MENUITEM "メディア06",				IDM_D0MEDIA06
+		MENUITEM "メディア07",				IDM_D0MEDIA07
+		MENUITEM "メディア08",				IDM_D0MEDIA08
+		MENUITEM "メディア09",				IDM_D0MEDIA09
+		MENUITEM "メディア10",				IDM_D0MEDIA10
+		MENUITEM "メディア11",				IDM_D0MEDIA11
+		MENUITEM "メディア12",				IDM_D0MEDIA12
+		MENUITEM "メディア13",				IDM_D0MEDIA13
+		MENUITEM "メディア14",				IDM_D0MEDIA14
+		MENUITEM "メディア15",				IDM_D0MEDIA15
+	END
+	POPUP "テープ(&A)"
+	BEGIN
+		MENUITEM "開く(&O)...",				IDM_TOPEN
+		MENUITEM "取り外す(&E)",			IDM_TEJECT
+		MENUITEM SEPARATOR
+		MENUITEM "巻き戻し(&W)",			IDM_REW
+		MENUITEM "早送り(&F)",				IDM_FF
+		MENUITEM SEPARATOR
+		MENUITEM "録音(&R)",				IDM_REC
+	END
+	POPUP "表示(&V)"
+	BEGIN
+		MENUITEM "フロッピーディスク(&F)",	IDM_FDC
+		MENUITEM "FM音源レジスタ(&O)",		IDM_OPNREG
+		MENUITEM "FM音源ディスプレイ(&D)",	IDM_OPNDISP
+		MENUITEM "サブCPUコントロール(&C)",	IDM_SUBCTRL
+		MENUITEM "キーボード(&K)",			IDM_KEYBOARD
+		MENUITEM "メモリ管理(&M)",			IDM_MMR
+		MENUITEM SEPARATOR
+		MENUITEM "ステータスバー(&S)",		IDM_STATUS
+		MENUITEM "実行に同期(&Y)",			IDM_SYNC
+		MENUITEM "最新の情報に更新(&R)",	IDM_REFRESH
+		MENUITEM SEPARATOR
+		MENUITEM "フルスクリーン(&U)\tAlt+Enter", IDM_FULLSCREEN
+	END
+	POPUP "デバッグ(&D)"
+	BEGIN
+		MENUITEM "実行(&X)",				IDM_EXEC
+		MENUITEM "停止(&B)",				IDM_BREAK
+		MENUITEM "トレース(&T)\tShift+F12",	IDM_TRACE
+		MENUITEM "リセット(&R)\tF12", 		IDM_RESET
+		MENUITEM SEPARATOR
+		MENUITEM "ブレークポイント(&P)",	IDM_BREAKPOINT
+		MENUITEM "スケジューラ(&S)",		IDM_SCHEDULER
+		POPUP "CPUレジスタ(&C)"
+		BEGIN
+			MENUITEM "メイン(&M)",			IDM_CPU_MAIN
+			MENUITEM "サブ(&S)",			IDM_CPU_SUB
+		END
+		POPUP "逆アセンブル(&D)"
+		BEGIN
+			MENUITEM "メイン(&M)",			IDM_DISASM_MAIN
+			MENUITEM "サブ(&S)",			IDM_DISASM_SUB
+		END
+		POPUP "メモリダンプ(&M)"
+		BEGIN
+			MENUITEM "メイン(&M)",			IDM_MEMORY_MAIN
+			MENUITEM "サブ(&S)",			IDM_MEMORY_SUB
+		END
+	END
+	POPUP "ツール(&T)"
+	BEGIN
+		MENUITEM "設定(&C)...",				IDM_CONFIG
+		MENUITEM SEPARATOR
+		MENUITEM "画面キャプチャ(&S)...",	IDM_GRPCAP
+		MENUITEM "WAVキャプチャ(&W)...",	IDM_WAVCAP
+		MENUITEM SEPARATOR
+		MENUITEM "新規ディスク作成(&D)...",	IDM_NEWDISK
+		MENUITEM "新規テープ作成(&T)...",	IDM_NEWTAPE
+		MENUITEM "VFD→D77変換(&V)...",		IDM_VFD2D77
+		MENUITEM "2D→D77変換(&2)...",		IDM_2D2D77
+		MENUITEM "VTP→T77変換(&P)...",		IDM_VTP2T77
+	END
+	POPUP "ウィンドウ(&W)"
+	BEGIN
+		MENUITEM "重ねて表示(&C)",			IDM_CASCADE
+		MENUITEM "並べて表示(&T)",			IDM_TILE
+		MENUITEM "全てアイコン化(&I)",		IDM_ICONIC
+		MENUITEM "アイコンの整列(&A)",		IDM_ARRANGEICON
+	END
+	POPUP "ヘルプ(&H)"
+	BEGIN
+		MENUITEM "バージョン情報(&A)...", 	IDM_ABOUT
+	END
+END
+
+/*
+ *	ブレークポイントメニュー
+ */
+IDR_BREAKPOINTMENU MENU DISCARDABLE
+BEGIN
+	POPUP "ポップアップ"
+	BEGIN
+		MENUITEM "ジャンプ(&J)",			IDM_BREAKP_JUMP
+		MENUITEM SEPARATOR
+		MENUITEM "有効(&E)",				IDM_BREAKP_ENABLE
+		MENUITEM "無効(&D)",				IDM_BREAKP_DISABLE
+		MENUITEM "クリア(&C)",				IDM_BREAKP_CLEAR
+		MENUITEM SEPARATOR
+		MENUITEM "全てクリア(&A)",			IDM_BREAKP_ALL
+	END
+END
+
+/*
+ *	逆アセンブル・メモリダンプメニュー
+ */
+IDR_DISASMMENU MENU DISCARDABLE
+BEGIN
+	POPUP "ポップアップ"
+	BEGIN
+		MENUITEM "アドレス入力(&A)...",		IDM_DIS_ADDR
+		MENUITEM SEPARATOR
+		MENUITEM "&PCレジスタ",				IDM_DIS_PC
+		MENUITEM "&Xレジスタ",				IDM_DIS_X
+		MENUITEM "&Yレジスタ",				IDM_DIS_Y
+		MENUITEM "&Uレジスタ",				IDM_DIS_U
+		MENUITEM "&Sレジスタ",				IDM_DIS_S
+		MENUITEM SEPARATOR
+		MENUITEM "&RESETベクタ",			IDM_DIS_RESET
+		MENUITEM "&NMIベクタ",				IDM_DIS_NMI
+		MENUITEM "S&WIベクタ",				IDM_DIS_SWI
+		MENUITEM "&IRQベクタ",				IDM_DIS_IRQ
+		MENUITEM "&FIRQベクタ",				IDM_DIS_FIRQ
+		MENUITEM "SWI&2ベクタ",				IDM_DIS_SWI2
+		MENUITEM "SWI&3ベクタ",				IDM_DIS_SWI3
+	END
+END
+
+/*
+ *	アクセラレータ
+ */
+IDR_ACCELERATOR ACCELERATORS DISCARDABLE
+BEGIN
+	VK_F12,		IDM_RESET,			VIRTKEY, NOINVERT
+	VK_F12,		IDM_TRACE,			VIRTKEY, SHIFT, NOINVERT
+	VK_RETURN,	IDM_FULLSCREEN,		VIRTKEY, ALT, NOINVERT
+END
+
+/*
+ *	バージョン情報ダイアログ
+ */
+IDD_ABOUTDLG DIALOG DISCARDABLE  0, 0, 142, 115
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "XM7のバージョン情報"
+BEGIN
+	DEFPUSHBUTTON	"OK",IDOK,45,94,50,14
+	LTEXT			"FM-7 EMULATOR XM7",IDC_TITLE,39,7,96,8
+	CTEXT			"Copyright (C) 1999-2001 ＰＩ．",IDC_COPYRIGHT,7,42,128,
+					8
+	LTEXT			"V2.5L10 (2001/02/23)",IDC_VERSION,39,21,96,8
+	LTEXT			"",IDC_URL,8,51,123,9
+	ICON			IDI_APPICON,IDC_ABOUTICON,9,9,18,20
+	LTEXT			"FM Sound Generator, PSG Implementation\nTechnology from M88, 1998-2000 by cisc",
+					IDC_FMCOPY,8,66,123,19
+END
+
+/*
+ *	アドレス入力ダイアログ
+ */
+IDD_ADDRDLG DIALOG DISCARDABLE 0, 0, 123, 49
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "アドレス入力"
+BEGIN
+	LTEXT			"16進アドレス(A)",IDC_ADDRLABEL,7,9,48,8
+	COMBOBOX		IDC_ADDRCOMBO,7,20,48,52,CBS_DROPDOWN | CBS_SORT |
+					WS_VSCROLL | WS_TABSTOP,WS_EX_RIGHT
+	DEFPUSHBUTTON	"OK",IDOK,66,7,50,14
+	PUSHBUTTON		"ｷｬﾝｾﾙ",IDCANCEL,66,28,50,14
+END
+
+/*
+ *	ディスクタイトルダイアログ
+ */
+IDD_TITLEDLG DIALOG DISCARDABLE  0, 0, 153, 47
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "ディスクタイトル入力"
+BEGIN
+	LTEXT			"タイトル(16文字まで)",IDC_TITLELABEL,7,7,86,8
+	EDITTEXT		IDC_TITLEEDIT,7,18,86,14
+	DEFPUSHBUTTON	"OK",IDOK,104,7,42,14
+	PUSHBUTTON		"ｷｬﾝｾﾙ",IDCANCEL,104,26,42,14
+END
+
+/*
+ *	全般ページ
+ */
+IDD_GENERALPAGE DIALOG DISCARDABLE  0, 0, 210, 154
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "全般"
+BEGIN
+	GROUPBOX		"動作機種",IDC_GP_MACHINEG,7,7,86,46
+	CONTROL			"FM-&7",IDC_GP_FM7,"Button",BS_AUTORADIOBUTTON |
+					WS_GROUP,13,20,32,10
+	CONTROL			"FM77&AV",IDC_GP_FM77AV,"Button",BS_AUTORADIOBUTTON,13,
+					36,41,10
+	GROUPBOX		"動作モード",IDC_GP_SPEEDMODEG,105,7,98,46
+	CONTROL			"高速(&H) (FM-77以降)",IDC_GP_HIGHSPEED,"Button",
+					BS_AUTORADIOBUTTON | WS_GROUP,112,20,79,10
+	CONTROL			"低速(&L)  (FM-7互換)",IDC_GP_LOWSPEED,"Button",
+					BS_AUTORADIOBUTTON,112,36,77,10
+	GROUPBOX		"CPU速度",IDC_GP_SPEEDG,7,61,196,54
+	COMBOBOX		IDC_GP_CPUCOMBO,13,77,67,50,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"サイクル/&ms",IDC_GP_CPULABEL,139,80,50,8
+	EDITTEXT		IDC_GP_CPUTEXT,91,77,45,14,ES_READONLY | ES_RIGHT
+	CONTROL			"Spin1",IDC_GP_CPUSPIN,"msctls_updown32",UDS_ARROWKEYS |
+					UDS_AUTOBUDDY | UDS_ALIGNRIGHT | UDS_SETBUDDYINT | UDS_NOTHOUSANDS,
+					191,76,9,14
+	CONTROL			"テープモータオン時は、フルスピードで動作(&F)",
+					IDC_GP_TAPESPEED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+					13,98,149,10
+	LTEXT			"",IDC_GP_HELP,7,127,196,18,SS_SUNKEN
+END
+
+/*
+ *	サウンドページ
+ */
+IDD_SOUNDPAGE DIALOG DISCARDABLE 0, 0, 210, 154
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "サウンド"
+BEGIN
+	GROUPBOX		"サンプリングレート",IDC_SP_RATEG,7,7,79,60
+	CONTROL			"&44.100kHz",IDC_SP_44K,"Button",BS_AUTORADIOBUTTON | 
+					WS_GROUP,13,20,57,10
+	CONTROL			"&22.050kHz",IDC_SP_22K,"Button",BS_AUTORADIOBUTTON,13,
+					35,57,10
+	CONTROL			"合成しない(&N)",IDC_SP_NONE,"Button",BS_AUTORADIOBUTTON,
+					13,50,57,12
+	GROUPBOX		"サウンドバッファ",IDC_SP_BUFFERG,97,7,106,60
+	LTEXT			"バッファサイズ(&S)",IDC_SP_BUFTEXT,105,27,52,8
+	EDITTEXT		IDC_SP_BUFEDIT,105,41,40,14, ES_READONLY | ES_RIGHT
+	CONTROL			"Spin1",IDC_SP_BUFSPIN,"msctls_updown32", UDS_AUTOBUDDY |
+					UDS_ALIGNRIGHT | UDS_ARROWKEYS |
+					UDS_NOTHOUSANDS,186,41,9,14
+	LTEXT			"ms相当",IDC_SP_BUFMS,148,43,23,8
+	GROUPBOX		"BEEP音",IDC_SP_BEEPG,7,76,196,39
+	LTEXT			"発振周波数(&F)",IDC_SP_BEEPTEXT,13,95,44,8
+	EDITTEXT		IDC_SP_BEEPEDIT,61,92,40,14, ES_READONLY | ES_RIGHT
+	CONTROL			"Spin2",IDC_SP_BEEPSPIN,"msctls_updown32",
+					UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS |
+					UDS_NOTHOUSANDS,119,92,10,14
+	LTEXT			"Hz",IDC_SP_BEEPHZ,105,95,8,8
+	LTEXT			"",IDC_SP_HELP,7,127,196,18,SS_SUNKEN
+END
+
+/*
+ *	キーボードページ
+ */
+IDD_KBDPAGE DIALOG DISCARDABLE 0, 0, 210, 154
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "キーボード"
+BEGIN
+	GROUPBOX		"キーボード マップ",IDC_KP_MAPG,7,7,196,108
+	CONTROL			"List1",IDC_KP_LIST,"SysListView32",LVS_REPORT |
+					LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,15,22,180,64
+	PUSHBUTTON		"10&1マップ",IDC_KP_101B,15,93,50,14
+	PUSHBUTTON		"10&6マップ",IDC_KP_106B,80,93,50,14
+	PUSHBUTTON		"PC-&98マップ",IDC_KP_98B,144,93,50,14
+	LTEXT			"",IDC_KP_HELP,7,127,196,18,SS_SUNKEN
+END
+
+/*
+ *	キー入力ダイアログ
+ */
+IDD_KEYINDLG DIALOG DISCARDABLE  0, 0, 117, 62
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "割り当てキーの入力"
+BEGIN
+	LTEXT			"キー番号XXへ割り当てるキーを、キーボードより入力してください。(右クリックで決定します)",
+					IDC_KEYIN_LABEL,7,7,100,30
+	LTEXT			"現在のキー",IDC_KEYIN_STATIC,7,45,41,8
+	LTEXT			"(割り当て無し)",IDC_KEYIN_KEY,53,45,57,8
+END
+
+/*
+ *	ジョイスティックページ
+ */
+IDD_JOYPAGE DIALOG DISCARDABLE 0, 0, 210, 154
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "ジョイスティック"
+BEGIN
+	GROUPBOX		"ポート選択",IDC_JP_PORTG,7,7,93,29
+	CONTROL 		"ポート&1",IDC_JP_PORT1,"Button",BS_AUTORADIOBUTTON |
+					WS_GROUP,14,20,37,10
+	CONTROL 		"ポート&2",IDC_JP_PORT2,"Button",BS_AUTORADIOBUTTON,
+					58,20,37,10
+	GROUPBOX		"タイプ",IDC_JP_TYPEG,7,42,93,32
+	COMBOBOX		IDC_JP_TYPEC,13,53,80,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	GROUPBOX		"連射",IDC_JP_RAPIDG,7,79,93,36
+	LTEXT			"&Aボタン",IDC_JP_RAPIDA,14,89,23,8
+	COMBOBOX		IDC_JP_RAPIDAC,41,86,52,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"&Bボタン",IDC_JP_RAPIDB,14,103,23,8
+	COMBOBOX		IDC_JP_RAPIDBC,41,100,52,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	GROUPBOX		"コード割り当て",IDC_JP_CODEG,110,7,93,108
+	LTEXT			"↑",IDC_JP_UP,117,21,25,8
+	COMBOBOX		IDC_JP_UPC,146,18,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"↓",IDC_JP_DOWN,117,34,25,8
+	COMBOBOX		IDC_JP_DOWNC,146,31,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"←",IDC_JP_LEFT,117,47,25,8
+	COMBOBOX		IDC_JP_LEFTC,146,44,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"→",IDC_JP_RIGHT,117,60,25,8
+	COMBOBOX		IDC_JP_RIGHTC,146,57,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"センター",IDC_JP_CENTER,117,73,25,8
+	COMBOBOX		IDC_JP_CENTERC,146,70,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"Aボタン",IDC_JP_A,117,86,25,8
+	COMBOBOX		IDC_JP_AC,146,83,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"Bボタン",IDC_JP_B,117,99,25,8
+	COMBOBOX		IDC_JP_BC,146,96,50,120,CBS_DROPDOWNLIST |
+					WS_VSCROLL | WS_TABSTOP
+	LTEXT			"",IDC_JP_HELP,7,127,196,18,SS_SUNKEN
+END
+
+/*
+ *	スクリーンページ
+ */
+IDD_SCRPAGE DIALOG DISCARDABLE 0, 0, 210, 154
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "スクリーン"
+BEGIN
+	GROUPBOX		"優先する画面モード(フルスクリーン時)",IDC_SCP_MODEG,7,
+					7,196,51
+	CONTROL			"640×4&00×16 (アスペクト比同一)",IDC_SCP_400,"Button",
+					BS_AUTORADIOBUTTON | WS_GROUP,14,23,114,10
+	CONTROL			"640×4&80×16 (VGA上位互換)",IDC_SCP_480,"Button",
+					BS_AUTORADIOBUTTON,14,40,100,10
+	GROUPBOX		"その他",IDC_SCP_ETCG,7,67,196,48
+	CONTROL			"&24kHz表示エミュレート (FM77AV40SX)",IDC_SCP_24K,
+					"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,81,128,10
+	CONTROL			"640×480フルスクリーン時に、ステータスを表示(&S)",
+					IDC_SCP_CAPTIONB,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
+					14,98,162,10
+	LTEXT			"",IDC_SCP_HELP,7,127,196,18,SS_SUNKEN
+END
+
+/*
+ *	オプションページ
+ */
+IDD_OPTPAGE DIALOG DISCARDABLE 0, 0, 210, 154
+STYLE WS_CHILD | WS_DISABLED | WS_CAPTION
+FONT 9, "ＭＳ Ｐゴシック"
+CAPTION "オプション"
+BEGIN
+	GROUPBOX		"WHG音源カード",IDC_OP_WHGG,7,7,196,31
+	CONTROL			"有効(&W)",IDC_OP_WHGB,"Button",BS_AUTOCHECKBOX |
+					WS_TABSTOP,14,21,46,10
+	GROUPBOX		"ビデオディジタイズカード",IDC_OP_DIGITIZEG,7,45,196,31
+	CONTROL			"有効(&V)",IDC_OP_DIGITIZEB,"Button",BS_AUTOCHECKBOX | 
+					WS_TABSTOP,14,59,46,10
+	LTEXT			"",IDC_OP_HELP,7,127,196,18,SS_SUNKEN
+END
+
+/*
+ *	バージョン情報
+ */
+VS_VERSION_INFO VERSIONINFO
+	FILEVERSION 2,5,1,1
+	PRODUCTVERSION 2,5,1,1
+	FILEFLAGSMASK 0x3fL
+	FILEFLAGS 0x0L
+	FILEOS 0x10004L
+	FILETYPE 0x1L
+	FILESUBTYPE 0x0L
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "041104b0"
+		BEGIN
+			VALUE "CompanyName", "\0"
+			VALUE "FileDescription", "FM-7 EMULATOR XM7\0"
+			VALUE "FileVersion", "2, 5, 1, 1\0"
+			VALUE "InternalName", "XM7 \0"
+			VALUE "LegalCopyright", "Copyright (C) 1999-2001 ＰＩ．\0"
+			VALUE "OriginalFilename", "XM7.EXE\0"
+			VALUE "ProductName", "XM7 for Win32\0"
+			VALUE "ProductVersion", "2, 5, 1, 1\0"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x411, 1200
+	END
+END
+
+/*
+ *	ストリングテーブル
+ */
+STRINGTABLE DISCARDABLE
+BEGIN
+	IDM_OPEN				"仮想マシンステートファイルを開く"
+	IDM_SAVE				"仮想マシンステートファイルを保存"
+	IDM_SAVEAS 				"仮想マシンステートファイルを名前を付けて保存"
+	IDM_RESET				"仮想マシンをリセット"
+	IDM_BASIC				"動作モードをBASICモードに設定し、リセット"
+	IDM_DOS					"動作モードをDOSモードに設定し、リセット"
+	IDM_EXIT				"XM7の終了"
+
+	IDM_D1OPEN 				"ディスクイメージをマウント"
+	IDM_DBOPEN 				"ディスクイメージを両方のドライブにマウント"
+	IDM_D1EJECT				"ディスクイメージをアンマウント"
+	IDM_D1TEMP				"一時的にイジェクト状態を作る"
+	IDM_D1WRITE				"書き込み禁止タブを操作"
+	IDM_D1MEDIA00			"メディア交換"
+	IDM_D1MEDIA01			"メディア交換"
+	IDM_D1MEDIA02			"メディア交換"
+	IDM_D1MEDIA03			"メディア交換"
+	IDM_D1MEDIA04			"メディア交換"
+	IDM_D1MEDIA05			"メディア交換"
+	IDM_D1MEDIA06			"メディア交換"
+	IDM_D1MEDIA07			"メディア交換"
+	IDM_D1MEDIA08			"メディア交換"
+	IDM_D1MEDIA09			"メディア交換"
+	IDM_D1MEDIA10			"メディア交換"
+	IDM_D1MEDIA11			"メディア交換"
+	IDM_D1MEDIA12			"メディア交換"
+	IDM_D1MEDIA13			"メディア交換"
+	IDM_D1MEDIA14			"メディア交換"
+	IDM_D1MEDIA15			"メディア交換"
+
+	IDM_D0OPEN 				"ディスクイメージをマウント"
+	IDM_D0EJECT				"ディスクイメージをアンマウント"
+	IDM_D0TEMP				"一時的にイジェクト状態を作る"
+	IDM_D0WRITE				"書き込み禁止タブを操作"
+	IDM_D0MEDIA00			"メディア交換"
+	IDM_D0MEDIA01			"メディア交換"
+	IDM_D0MEDIA02			"メディア交換"
+	IDM_D0MEDIA03			"メディア交換"
+	IDM_D0MEDIA04			"メディア交換"
+	IDM_D0MEDIA05			"メディア交換"
+	IDM_D0MEDIA06			"メディア交換"
+	IDM_D0MEDIA07			"メディア交換"
+	IDM_D0MEDIA08			"メディア交換"
+	IDM_D0MEDIA09			"メディア交換"
+	IDM_D0MEDIA10			"メディア交換"
+	IDM_D0MEDIA11			"メディア交換"
+	IDM_D0MEDIA12			"メディア交換"
+	IDM_D0MEDIA13			"メディア交換"
+	IDM_D0MEDIA14			"メディア交換"
+	IDM_D0MEDIA15			"メディア交換"
+
+	IDM_FDC					"フロッピーディスクウィンドウを表示"
+	IDM_OPNREG				"FM音源レジスタウィンドウを表示"
+	IDM_OPNDISP				"FM音源ディスプレイウィンドウを表示"
+	IDM_SUBCTRL				"サブCPUコントロールウィンドウを表示"
+	IDM_KEYBOARD			"キーボードウィンドウを表示"
+	IDM_MMR					"MMRウィンドウを表示"
+	IDM_STATUS				"ステータスバーの表示切り替え"
+	IDM_REFRESH				"全てのウィンドウを再描画"
+	IDM_SYNC				"仮想マシンの実行に同期して更新"
+	IDM_FULLSCREEN			"全画面モードへ切り替え"
+
+	IDM_TOPEN				"テープイメージをマウント"
+	IDM_TEJECT				"テープイメージをアンマウント"
+	IDM_REW					"一つ手前まで巻き戻し"
+	IDM_FF					"一つ先まで早送り"
+	IDM_REC					"録音状態に設定"
+
+	IDM_EXEC				"仮想マシンの実行を開始"
+	IDM_BREAK				"仮想マシンの実行を停止"
+	IDM_TRACE				"１命令だけ実行"
+	IDM_BREAKPOINT			"ブレークポイントウィンドウを表示"
+	IDM_SCHEDULER			"スケジューラウィンドウを表示"
+	IDM_CPU_MAIN			"CPUレジスタウィンドウ(メインCPU)を表示"
+	IDM_CPU_SUB				"CPUレジスタウィンドウ(サブCPU)を表示"
+	IDM_DISASM_MAIN			"逆アセンブルウィンドウ(メインCPU)を表示"
+	IDM_DISASM_SUB			"逆アセンブルウィンドウ(サブCPU)を表示"
+	IDM_MEMORY_MAIN			"メモリダンプウィンドウ(メインCPU)を表示"
+	IDM_MEMORY_SUB			"メモリダンプウィンドウ(サブCPU)を表示"
+
+	IDM_CONFIG				"XM7の動作環境を設定"
+	IDM_GRPCAP				"現在の画面をキャプチャ"
+	IDM_WAVCAP				"WAV出力をキャプチャ"
+	IDM_NEWDISK				"新しいディスクイメージを作成"
+	IDM_NEWTAPE				"新しいテープイメージを作成"
+	IDM_VFD2D77				"VFDディスクイメージを、D77ディスクイメージへ変換"
+	IDM_2D2D77				"2Dディスクイメージを、D77ディスクイメージへ変換"
+	IDM_VTP2T77				"VTPテープイメージを、T77テープイメージへ変換"
+
+	IDM_CASCADE				"サブウィンドウの整列(重ねて表示)"
+	IDM_TILE				"サブウィンドウの整列(並べて表示)"
+	IDM_ICONIC				"全てのサブウィンドウを最小化"
+	IDM_ARRANGEICON			"アイコン化されたサブウィンドウの整列"
+
+	IDM_ABOUT				"XM7のバージョン情報を表示"
+
+	IDS_IDLEMESSAGE			"Ready"
+	IDS_VMERROR				"仮想マシンを初期化できません"
+	IDS_COMERROR			"DirectXコンポーネントを初期化できません"
+	IDS_RUNCAPTION			"XM7 [実行]"
+	IDS_STOPCAPTION			"XM7 [停止]"
+	IDS_DISKFILTER			"FM-7/77ディスクイメージ (*.D77)|*.D77|320KBディスクイメージ (*.2D)|*.2D|全てのファイル (*.*)|*.*||"
+	IDS_DISKOPEN			"開く(&O)..."
+	IDS_DISKBOTH			"両ドライブで開く(&B)..."
+	IDS_DISKEJECT			"取り外す(&E)"
+	IDS_DISKPROTECT			"書き込み禁止(&W)"
+	IDS_DISK2D				"2Dファイル"
+	IDS_TAPEFILTER			"FM-7/77テープイメージ (*.T77)|*.T77|全てのファイル (*.*)|*.*||"
+	IDS_TAPEOPEN			"開く(&O)..."
+	IDS_TAPEEJECT			"取り外す(&E)"
+	IDS_TAPEREW				"巻き戻し(&W)"
+	IDS_TAPEFF				"早送り(&F)"
+	IDS_TAPEREC				"録音(&R)"
+	IDS_NEWTAPEOK			"新規テープイメージを作成しました"
+	IDS_NEWDISKFILTER		"FM-7/77ディスクイメージ (*.D77)|*.D77|全てのファイル (*.*)|*.*||"
+	IDS_NEWDISKOK			"新規ディスクイメージを作成しました"
+	IDS_GRPCAPFILTER		"Windowsビットマップ (*.BMP)|*.BMP|全てのファイル (*.*)|*.*||"
+	IDS_SWND_CPUREG_MAIN	"CPUレジスタ(メイン)"
+	IDS_SWND_CPUREG_SUB		"CPUレジスタ(サブ)"
+	IDS_SWND_SCHEDULER		"スケジューラ"
+	IDS_SWND_DISASM_MAIN	"逆アセンブル(メイン)"
+	IDS_SWND_DISASM_SUB		"逆アセンブル(サブ)"
+	IDS_SWND_MEMORY_MAIN	"メモリダンプ(メイン)"
+	IDS_SWND_MEMORY_SUB		"メモリダンプ(サブ)"
+	IDS_STATEFILTER			"XM7ステートファイル (*.XM7)|*.XM7|全てのファイル (*.*)|*.*||"
+	IDS_STATEERROR			"ステートファイルが存在しないか、未対応のファイルバージョンです"
+	IDS_SWND_BREAKPOINT		"ブレークポイント"
+	IDS_SWND_FDC			"フロッピーディスク(MB8877A)"
+	IDS_VFDFILTER			"EM-7ディスクイメージ (*.VFD)|*.VFD|全てのファイル (*.*)|*.*||"
+	IDS_2DFILTER			"320KBディスクイメージ (*.2D)|*.2D|全てのファイル (*.*)|*.*||"
+	IDS_VTPFILTER			"EM-7テープイメージ (*.VTP)|*.VTP|全てのファイル (*.*)|*.*||"
+	IDS_CONVERTOK			"変換に成功しました"
+	IDS_SWND_OPNREG			"FM音源レジスタ(YM2203)"
+	IDS_SWND_SUBCTRL		"サブCPUコントロール"
+	IDS_CONFIGCAPTION		"XM7の動作設定"
+	IDC_GP_MACHINEG			"FM-7設定時もフロッピーディスク・漢字ROM・FM音源は使用できます。デフォルトはFM77AVです"
+	IDC_GP_SPEEDMODEG		"低速モードではVRAMアクセス時にウェイトが入ります。デフォルトは高速モード(サイクルスチールモード)です"
+	IDC_GP_SPEEDG			"メインCPUの速度を設定します。サブCPUの速度はメインCPUに依存します。デフォルトは通常1752、MMR使用時1466です"
+	IDS_GP_MAINCPU			"通常"
+	IDS_GP_MAINMMR			"MMR使用時"
+	IDS_SWND_OPNDISP		"FM音源ディスプレイ"
+	IDC_SP_RATEG			"OPN/WHGの合成レートを指定します。合成しないに設定すると負荷が減ります。デフォルトは44.100kHzです"
+	IDC_SP_BUFFERG			"音切れが起こる場合は200ms～400msに設定してください。デフォルトは80msです"
+	IDC_SP_BEEPG			"BEEP音の音程を微調整できます。デフォルトは1200Hzです"
+	IDS_SWND_KEYBOARD		"キーボード(MB88551)"
+	IDC_KP_LIST				"キー変換マップを変更します。キーNo.をダブルクリックすることで変更できます。設定は後優先です"
+	IDC_KP_101B				"現在のマップを破棄し、デフォルトキーマップ(英語101キーボード向け)をロードします"
+	IDC_KP_106B				"現在のマップを破棄し、デフォルトキーマップ(日本語106キーボード向け)をロードします"
+	IDC_KP_98B				"現在のマップを破棄し、デフォルトキーマップ(NEC PC-98キーボード向け)をロードします"
+	IDS_KP_KEYNO			"No."
+	IDS_KP_KEYFM			" 英  数 "
+	IDS_KP_KEYKANA			" か  な"
+	IDS_KP_KEYDI			"DirectX キーID"
+	IDC_KEYIN_LABEL			"キー番号%02Xへ割り当てるキーを、キーボードより入力してください。   (右クリックで決定します)"
+	IDC_KEYIN_KEY			"(割り当て無し)"
+	IDS_DISKTEMP			"一時取り出し(&T)"
+	IDS_JP_RAPID0			"なし"
+	IDS_JP_RAPID1			"1ショット/秒"
+	IDS_JP_RAPID2			"2ショット/秒"
+	IDS_JP_RAPID3			"3ショット/秒"
+	IDS_JP_RAPID4			"4ショット/秒"
+	IDS_JP_RAPID5			"5ショット/秒"
+	IDS_JP_RAPID6			"6ショット/秒"
+	IDS_JP_RAPID7			"8ショット/秒"
+	IDS_JP_RAPID8			"12ショット/秒"
+	IDS_JP_RAPID9			"25ショット/秒"
+	IDS_JP_TYPE0			"使用しない"
+	IDS_JP_TYPE1			"標準JOY I/F(ポート1)"
+	IDS_JP_TYPE2			"標準JOY I/F(ポート2)"
+	IDS_JP_TYPE3			"キーボード"
+	IDC_JP_PORTG			"ゲーム コントローラ デバイスを選択します。システムにインストールされているデバイスを2つまでサポートします"
+	IDC_JP_TYPEG			"デバイスの割り付けを選択します。両方とも使用しないに設定するとポーリングを行いません。デフォルトは標準JOY I/Fです"
+	IDC_JP_RAPIDG			"連射オプションを設定します。Aボタン/Bボタンの区別はコード変換前の値で行います。デフォルトは連射なしです"
+	IDC_JP_CODEG			"4方向、2ボタンそれぞれ、押されたときの発生コードを選択できます。デフォルトは一対一対応です"
+	IDC_JP_UP				"↑"
+	IDC_JP_DOWN				"↓"
+	IDC_JP_LEFT				"←"
+	IDC_JP_RIGHT			"→"
+	IDC_JP_A				"Aボタン"
+	IDC_JP_B				"Bボタン"
+	IDC_SCP_MODEG			"全画面モード時に優先して設定するモードを指定します。デフォルトは640×400×16です"
+	IDC_SCP_24K				"1ラインおきの表示を行わず、スキャンラインを全て表示します。デフォルトはオフです"
+	IDC_SCP_CAPTIONB		"画面の上下にステータスを表示します。デフォルトはオンです"
+	IDS_ABOUTURL			"http://www.ipc-tokai.or.jp/~ytanaka/"
+	IDS_SWND_MMR			"メモリ管理"
+	IDC_OP_WHGG				"WHG増設FM音源カードを有効にします。デフォルトはオンです"
+	IDC_OP_DIGITIZEG		"ビデオディジタイズカードを有効にします。デフォルトはオンです"
+	IDS_WAVCAPFILTER		"WAVオーディオファイル (*.WAV)|*.WAV|全てのファイル (*.*)|*.*||"
+	IDS_WAVCAPERROR			"WAVキャプチャを開始できません"
+END
+
+/*
+ *	アイコン
+ */
+IDI_APPICON 		ICON DISCARDABLE		"resource\\app.ico"
+IDI_WNDICON			ICON DISCARDABLE		"resource\\xm7.ico"
+IDI_FUJICON			ICON DISCARDABLE		"resource\\fujitsu.ico"
+
+#endif	/* _WIN32 */

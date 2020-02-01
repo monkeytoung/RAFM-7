@@ -1,0 +1,31 @@
+#
+# FM-7 EMULATOR "XM7"
+#
+# Copyright (C) 1999-2001 ÇoÇhÅD(ytanaka@ipc-tokai.or.jp)
+# [ ROMÉZÅ[Éo makefile ]
+#
+
+AS09		= AS63.EXE
+AS09FLAGS	= -y -8 -o
+AS86		= TASM.EXE
+AS86FLAGS	=
+LD		= TLINK.EXE
+LDFLAGS		= /t
+
+AS86_BIN	= SAVEROM.COM
+AS86_OBJS	= $(AS86_BIN)
+AS86_SRCS	= ${AS86_OBJS:.COM=.X86}
+AS09_BIN	= SAVEROM.BIN
+AS09_OBJS	= IPL.O SAVEROM.O
+AS09_SRCS	= ${AS09_OBJS:.O=.ASM}
+
+TARGET : $(AS86_BIN) $(AS09_BIN)
+
+$(AS09_BIN) : $(AS09_OBJS)
+		copy /b IPL.O+SAVEROM.O $(AS09_BIN)
+
+.asm.o:
+		$(AS09) $(AS09FLAGS) $&.asm
+.x86.com:
+		$(AS86) $(AS86FLAGS) $&.x86
+		$(LD) $(LDFLAGS) $&.obj
